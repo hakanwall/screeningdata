@@ -6,7 +6,7 @@ library(dplyr)
 library(tidyr)
 library(MASS)
 library(foreign)
-library(sandwich)
+
 
 # To set cluster 3 as reference cluster for the regression analyses
 
@@ -31,24 +31,22 @@ coef_quasi <- exp(fit.quasi$coefficients)
 # Calculate 95 % CI
 CI_quasi <- exp(confint.default(fit.quasi))
 
+#test all types of gambling in a Poisson regression model 
 
-# calculate robust standard errors for model fit.p due to an over-dispersed error term
+tmp_data <- dplyr::select(sub_1_plus_analyses, total, casino_online:horsebetting)
 
-#cov.m1 <- vcovHC(fit.p.4, type = "HC0")
+model_all_types <- glm(total~., data=tmp_data, family = "poisson")
 
-#std.err <- sqrt(diag(cov.m1))
+summary(model_all_types)
 
-#q.val <- qnorm(0.975)
+exp(model_all_types$coefficients)
 
-#r.est.p <- cbind(
-#  Estimate = exp(coef(fit.p.4))
-#  , "Robust SE" = std.err
-#  , z = coef(fit.p.4)/std.err
-#  , "Pr(>|z|) "= 2 * pnorm(abs(coef(fit.p.4)/std.err), lower.tail = FALSE)
-#  , LL = exp(coef(fit.p.4) - q.val  * std.err)
-#  , UL = exp(coef(fit.p.4) + q.val  * std.err)
-#)
+# Fit with quasi-poisson since there is overdipersion in the model
 
-#r.est.p
+model_all_types <- glm(total~., data=tmp_data, family = quasipoisson)
+
+summary(model_all_types)
+
+exp(model_all_types$coefficients)
 
 
