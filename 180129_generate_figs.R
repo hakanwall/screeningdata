@@ -1,17 +1,16 @@
-##
+  ##
 # Plots for screening data
 ##
-library(dplyr)
-library(tidyr)
+library(tidyverse)
+library(ggrepel)
 library(ggplot2)
-
 
 # Plot types of gambling by gender, aggregate types of gambling by gender ---------
 # a is just a temporary variable used  ---------
 types_of_gambling <- dplyr::select(sub_1_plus, casino_online:other)
 a <- aggregate(types_of_gambling,by=list(sub_1_plus$Gender),FUN=mean)*100
 
-# this is done to arrange data nicely
+8# this is done to arrange data nicely
 a <- a %>%
   gather(type_gambling, value, casino_online:other, Group.1)
 a$gender <- c("Female","Male")
@@ -33,6 +32,7 @@ a$type_gambling[a$type_gambling == "egm"] <- "EGM outside casino"
 a$type_gambling[a$type_gambling == "horsebetting"] <- "Horse betting"
 a$type_gambling[a$type_gambling == "other"] <- "Other types of gambling*"
 
+
 # is done to provide whole numbers when printing value in geom_text() -------------
 a$value <- round(a$value)
 
@@ -51,16 +51,35 @@ a %>%
   coord_flip()
 
 ggsave("figs/types_of_gambling-by-gender-ppt.png", device ="png", width = 12, height= 8, units = c("cm"))
-ggsave("figs/types_of_gambling-by-gender-word-.eps", device ="eps", width =12, height= 8, units = c("in"))
+ggsave("figs/types_of_gambling-by-gender-word.eps", device ="eps", width =12, height= 8, units = c("in"))
+
+# ALt plot for type of game by gender
+
+a %>%
+  ggplot(aes(type_gambling, value/100, group=gender, color=gender)) +
+  geom_line(aes(linetype=gender, color=gender, size=gender))+
+  geom_point() +
+  theme(legend.position="bottom") +
+  scale_color_manual(values=c('#7570b3','#1b9e77','#d95f02')) + #,'#7570b3','#e7298a','#66a61e'))+
+  scale_size_manual(values=c(1,1,1)) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_discrete(limits = positions) +
+  labs(y="Probability", x="Type of gambling") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.title=element_blank()) +
+  geom_label_repel(aes(label = if_else(value >= 10, round(value),c()), group = gender), show.legend = FALSE) 
+
+ggsave("figs/types_of_gambling-by-gender-word-alt.png", plot=last_plot(), device = png(), width = 10, height = 5, units = c("in"), dpi="print")
+
 
 # Plot variable loadings of the different clusters 
-clust_aggr <- aggregate(all_data,by=list(all_3_5$cluster),FUN=mean)*100
+clust_aggr <- aggregate(all_data,by=list(all_3_6$cluster),FUN=mean)*100
 
 clust_aggr <- clust_aggr %>%
   gather(type_gambling, value, casino_online:lottery_type, Group.1)
 
-clust_aggr <- clust_aggr[1:50,]
-clust_aggr$cluster <- c(1,2,3,4,5)
+clust_aggr <- clust_aggr[1:60,]
+clust_aggr$cluster <- c("online casino gamblers","casino games gamblers","online sports bettors","multi-type gamblers","casino and sports betting","horse and lottery players")
 
 
 clust_aggr$type_gambling[clust_aggr$type_gambling == "casino_online"] <- "Online casino games"
@@ -77,35 +96,77 @@ clust_aggr$type_gambling[clust_aggr$type_gambling == "poker_online"] <- "Online 
 
 clust_aggr$value <- round(clust_aggr$value)
 clust_aggr %>%
-  ggplot(aes(cluster,value/100, fill=type_gambling)) + geom_bar(width = 0.4, position = position_dodge(width=0.7), stat="identity", color="black") +  
-  theme(legend.position=c("bottom"), legend.title = element_blank()) + 
-  #legend.title=element_blank()) + 
+  ggplot(aes(cluster,value/100, fill=type_gambling)) + geom_bar(width = 0.6, position = position_dodge(width=0.8), stat="identity", color="black") +  
   scale_fill_brewer(palette="RdGy") +
-  geom_text(aes(label = ifelse(value >9,value,""), group = type_gambling), position = position_dodge(0.7), vjust = -0.5, check_overlap = F) +
-  #geom_text_repel(aes(label=value, group = type_gambling)) +
-  #geom_label(aes(label=type_gambling), position ="identity") +
+  geom_text(aes(label = ifelse(value >9,value,""), group = type_gambling), position = position_dodge(0.8), vjust = -0.5, check_overlap = T) +
+  scale_x_discrete(limits = rev(pos_)) +
   scale_y_continuous(labels = scales::percent) +
-  labs(y="Proportion", x="Cluster")    
+  labs(y="Proportion", x="Cluster") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position=c("bottom"), legend.title = element_blank()) 
   #coord_flip()
 # In ppt-format
 ggsave("figs/types_of_gambling-by-cluster_ppt.png", device ="png", width = 15, height= 10, units = c("cm"))
 # For Word
-ggsave("figs/types_of_gambling-by-cluster-word.eps", device ="eps", width = 7.5, height= 5, units = c("in"))
+ggsave(filename = "figs/types_of_gambling-by-cluster-flip-word", plot=last_plot(), device = png(), width = 10, height = 5, units = c("in"), dpi="print")
+ggsave("figs/types_of_gambling-by-cluster-flip-word.eps", device ="eps", width = 8, height= 5.33, units = c("in"))
 
 
-# Mean PGSI by gender per cluster
+# Plot clusters differently...  type of game on x-axis and group by cluster
+
+tmmp_ <- clust_aggr %>%
+filter(cluster == "online casino gamblers" | cluster == "online sports bettors" | cluster == "horse and lottery players")
+  
+tmmp_ %>%  
+ggplot(aes(type_gambling, value/100, group=cluster, color=cluster)) +
+  geom_line(aes(linetype=cluster, color=cluster, size=cluster))+
+  geom_point() +
+  scale_color_manual(values=c('#1b9e77','#d95f02','#7570b3')) + #,'#e7298a','#66a61e','#000000'))+
+  scale_size_manual(values=c(1, 1, 1)) + # , 1, 1,1)) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_discrete(limits = c("Bingo","Horse betting","Lottery-type","Landbased poker","EGM","Landbased casino games","Landbased sports betting","Online casino games","Online sports betting","Online poker")) +
+  labs(y="Probability", x="") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "right", legend.title=element_blank()) +
+  geom_label_repel(aes(label = ifelse(value > 9 & value <= 100, round(value),""), group = cluster), show.legend = FALSE) 
+
+
+
+ggsave(filename = "figs/types_of_gambling-by-cluster_top_3.png", plot=last_plot(), device = png(), width = 7.5, height = 3.75, units = c("in"), dpi="print")
+
+
+# Plot result from regression model
+
+sub_1_plus_analyses %>%
+  filter(!is.na(total)) %>%
+    group_by(cluster, Gender) %>%
+      summarize(total = mean(total),
+                num_games = mean(n),
+                num = n()) %>%
+  ggplot(aes(cluster, total, group=Gender, color=Gender)) + geom_point() + geom_line(size=1) + 
+  theme_minimal() +
+  scale_color_manual(values=c('#1b9e77','#d95f02','#000000')) + #,'#7570b3','#e7298a','#66a61e'))+
+  scale_size_manual(values=c(1.5,1.5)) + 
+  scale_y_continuous(limits = c(0,27)) +
+  geom_label_repel(aes(label = round(total,1), group = Gender)) + 
+  # add horisontal line displaying mean PGSI
+  geom_hline(yintercept = 15.2, linetype="dashed") 
+
+ggsave("figs/cluster_by_gender_total_score-word.eps", device ="eps", width = 8, height= 5.33, units = c("in"))
+
+
+
+  # Mean PGSI by gender per cluster
 
 gend_clust <- sub_1_plus_analyses %>% 
   filter(!is.na(Gender), !is.na(Age), !is.na(total))  %>% 
-  group_by(Gender, cluster_5) %>% 
+  group_by(Gender, cluster) %>% 
   summarise(mean_pgsi = mean(total),
             num_games = mean(n),
             antal = n())
 
 gend_clust$Gender[gend_clust$Gender == 0] <- c("Female")
 gend_clust$Gender[gend_clust$Gender == 1] <- c("Male")
-
-
 
 gend_clust$mean_pgsi <- round(gend_clust$mean_pgsi, 1)
 
@@ -149,27 +210,26 @@ ggsave("figs//cluster-by_gender_pgsi-word.eps", device ="eps", width = 7.5, heig
 # Gender dist per cluster
 
 gend_dist_clust <- sub_1_plus_analyses %>% 
-  filter(!is.na(Gender))  %>% 
+  filter(!is.na(Gender), !is.na(total))  %>% 
   group_by(Gender, cluster) %>% 
-  summarise(antal = n())
+  summarise(mean_PGSI = mean(total),
+            antal = n())
 
 gend_dist_clust$Gender[gend_dist_clust$Gender == 0] <- c("Female")
 gend_dist_clust$Gender[gend_dist_clust$Gender == 1] <- c("Male")
 
-gend_dist_clust$cluster <- c("casino gamblers","horse bettors","sports bettors","multi-type-gamblers")
-gend_dist_clust$cluster[gend_dist_clust$cluster == "2"] <- c("casino gamblers")
-gend_dist_clust$cluster[gend_dist_clust$cluster == "3"] <- c("sports bettors")
-gend_dist_clust$cluster[gend_dist_clust$cluster == "4"] <- c("multi-type-gamblers")
+gend_dist_clust$cluster <- c("multi-type-gamblers","online sportsbettors","online casino gamblers","casino and sportsbettors","not casino gamblers")
+#gend_dist_clust$cluster[gend_dist_clust$cluster == "2"] <- c("casino gamblers")
+#gend_dist_clust$cluster[gend_dist_clust$cluster == "3"] <- c("sports bettors")
+#gend_dist_clust$cluster[gend_dist_clust$cluster == "4"] <- c("multi-type-gamblers")
 
-
-
-male <- .7782147 *length(sub_1_plus_analyses$total)
-female <- .22375*length(sub_1_plus_analyses$total)
+male <- mean(sub_1_plus_analyses$Gender) *length(sub_1_plus_analyses$Gender)
+female <- (1-mean(sub_1_plus_analyses$Gender))*length(sub_1_plus_analyses$Gender)
 
 gend_dist_clust <- gend_dist_clust %>%
   mutate(prop = if_else(Gender == "Female", antal/female,antal/male))
 
-pos_ <- c("multi-type-gamblers","sports bettors","casino gamblers","horse bettors")
+pos_ <- c("multi-type-gamblers","online sportsbettors","online casino gamblers","casino and sportsbettors","not casino gamblers")
 
 gend_dist_clust %>%
   ggplot(aes(cluster,prop*100)) + geom_bar(aes(fill = Gender), color="black",
@@ -177,7 +237,7 @@ gend_dist_clust %>%
   theme(legend.position="bottom", legend.title = element_blank()) + 
   labs(y="Proportion", x="Cluster", title = "") +
   scale_y_continuous() +
-  scale_x_discrete(limits = pos_) +
+  scale_x_discrete(limits = rev(pos_)) +
   scale_fill_manual(values = c("Male"= "#e6550d", "Female" ="white")) +
   #scale_fill_brewer(palette="RdGy") +
   geom_text(aes(label = round(prop*100), group = Gender), position = position_dodge(0.5), hjust = -0.5) +
@@ -255,13 +315,15 @@ tmp_age <- tmp_age %>%
     summarise(n =n())
 
 tmp_age <- as.data.frame(tmp_age)
+tmp_age <- tmp_age[1:10,]
 
 tmp_age$Age <- as.character(tmp_age$Age)
  
 # Create propotion column
 
-male <- round(0.78*5395)
-female= round(0.22*5395)
+num <- length(sub_1_plus$Gender)
+male <- round(mean(sub_1_plus$Gender)*num)
+female= round((1-mean(sub_1_plus$Gender))*num)
 
 tmp_age <- tmp_age %>% mutate(prop = if_else(Gender == 0, n/female, n/male))
 tmp_age$prop <- round(tmp_age$prop, 2)
@@ -395,157 +457,121 @@ a %>%
   coord_flip()
 
 
-qqplot(data=data, aes(x=speltyp, y=värde, group=grupp, colour=grupp)) + 
-  geom_bar()
-
-###
-sub_1_plus$cluster <- clust_cb_3_4$cluster
-
-sub_1_plus %>%
-    group_by(cluster, Gender) %>%
-      summarise(PGSI = mean(total),
-                casino_online = mean(casino_online),
-                num_games = mean(n),
-                n= n())
-
-
-
-######
-aaa <- select()
-aaa
-data_ <- as.matrix(mydata_) +1
-
-pol_ <- poLCA(cbind(casino_online, sportbetting_land, sportbetting_online, bingo, horsebetting, lottery, poker, casino_land)~1, data=as.data.frame(d_), 6)
-
-t1 <- lca(as.matrix(mydata_), k = 4)
-disma <- hamming.distance(z) 
-hr <- hclust(as.dist(disma)) 
-plot(hr)
-clust_hc <- cutree(hr, k=3) 
-plot(as.dendrogram(hr), edgePar=list(col=3, lwd=4), horiz=T)
+# Plot regression model output
+# Calculate mean PGSI per cluster
+cluster_1_female <- coef_quasi[1];cluster_1_female
+cluster_1_male <- coef_quasi[1]*coef_quasi[7];cluster_1_male
+cluster_2_female <- coef_quasi[1]*coef_quasi[2];cluster_2_female 
+cluster_2_male  <- coef_quasi[1]*coef_quasi[2]*coef_quasi[7]*coef_quasi[12];cluster_2_male
+cluster_3_female <- coef_quasi[1]*coef_quasi[3];cluster_3_female
+cluster_3_male <- coef_quasi[1]*coef_quasi[3]*coef_quasi[7]*coef_quasi[13];cluster_3_male
+cluster_4_female <- coef_quasi[1]*coef_quasi[4];cluster_4_female 
+cluster_4_male <- coef_quasi[1]*coef_quasi[4]*coef_quasi[7]*coef_quasi[14];cluster_4_male
+cluster_5_female <- coef_quasi[1]*coef_quasi[5];cluster_5_female
+cluster_5_male <- coef_quasi[1]*coef_quasi[5]*coef_quasi[7]*coef_quasi[15];cluster_5_male
+cluster_6_female <- coef_quasi[1]*coef_quasi[6];cluster_6_female
+cluster_6_male <- coef_quasi[1]*coef_quasi[6]*coef_quasi[7]*coef_quasi[16];cluster_6_male
 
 
+#Create data frame containing cluster, value and gender
+clust_gend <- data.frame(cluster = c("1","2","3","4",
+                                     "5","6","1","2","3","4",
+                                     "5","6","1","2","3","4",
+                                     "5","6"), value = c(coef_quasi_cluster[1],coef_quasi_cluster[1]*coef_quasi_cluster[2],coef_quasi_cluster[1]*coef_quasi_cluster[3],
+                                                         coef_quasi_cluster[1]*coef_quasi_cluster[4],coef_quasi_cluster[1]*coef_quasi_cluster[5],coef_quasi_cluster[1]*coef_quasi_cluster[6],
+                                                         cluster_1_female,cluster_2_female,cluster_3_female,
+                                                         cluster_4_female,cluster_5_female,cluster_6_female,
+                                                         cluster_1_male,cluster_2_male,cluster_3_male,cluster_4_male,
+                                                         cluster_5_male,cluster_6_male),
+                         gender=c(rep("combined",6),rep("female",6),rep("male",6)))
 
-x1 <- c(rep(c(0,1),8))
-x2 <- c(rep(c(0,0,1,1),4))
-x3 <- c(rep(0,8),rep(1,8)) 
+#Plot 
 
-f <- cbind(x1,x2,x3) ~ 1
-z <- cbind(x1,x2,x3)
-z <- z+1
+clust_gend$gender <- as.character(clust_gend$gender)
 
-pol_ <- poLCA(f, as.data.frame(z), 3)  
+clust_gend %>%
+  ggplot(aes(cluster, value, group=gender, color=gender)) + geom_point() + geom_line(aes(linetype=gender, size=gender)) +
+  scale_color_manual(values=c('#7570b3','#1b9e77','#d95f02')) + 
+  labs(y="PGSI score", x="") +
+  scale_size_manual(values=c(1, 1, 1)) +
+  scale_y_continuous(limits = c(8,27), breaks = c(8,10,12.5,15,17.5,20,22.5,25,27)) +
+  scale_x_discrete(limits = c("Online casino gamblers","Multi casino gamblers","Online sports bettors","Multi-type gamblers","Sports and casino gamblers","Lottery and horse gamblers")) +
+  geom_label_repel(aes(label = if_else(gender == "total", paste(round(value,1), if_else(cluster == "Online sports bettors" | cluster == "Multi-type gamblers" | cluster == "Lottery and horse gamblers","*","")), 
+                                                          paste(round(value,1), if_else(cluster == "Online casino gamblers","**","")))), show.legend = FALSE, segment.size = 0.2) +
+  #scale_size_manual(values=c(1,1.5))  +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size=10), axis.text.y = element_text(size=10), legend.title=element_blank(), legend.text = element_text(size=10))
 
-
-
-
-t_lca <- lca(as.matrix(z),2, matchdata = TRUE)
-t_lca$matching
-t_lca$bic
-t_cb_4 <- cbird(z, 4, 3) 
-t_cb$cluster
-t_cb$bic
-
-disma <- hamming.distance(z) 
-hr <- hclust(as.dist(disma)) 
-clust_hc <- cutree(hr, k=4) 
-
-aggregate(z,by=list(t_cb$cluster),FUN=mean)*100
+ggsave("figs/PGSI_by_cluster_times_gender.png", plot=last_plot(), device = png(), width = 7.5, height = 5, units = c("in"), dpi="print")
 
 
 
+## Plot invovlement effect by type of game
 
-aggregate(mydata,by=list(clust_cb_6$cluster),FUN=mean)*100
-(aggregate(z,by=list(t_lca$matching),FUN=mean)*100)-100
-aggregate(data_,by=list(pol_$predclass),FUN=mean)*100
+## Build a tibble containing type of game, num other games and PGSI total score
 
-z_ <- as.data.frame(z)
-sub_1_plus <- mutate(sub_1_plus, cb=clust_cb_4$cluster, lca=t_lca$matching, pol = pol_$predclass)
+inv_tibble <- tibble(game = c(rep(c("Online casino games"),7),rep(c("EGM"),7),rep(c("Online sports betting"),7),rep(c("Land-based sports betting"),7),rep("Online poker",7), rep("Land-based poker",7),
+                    rep("Lotteries",7),rep("Bingo",7),rep("Horse betting",7),rep("Land-based casino",7),rep("Total",7)), 
+                    num_games = rep(c("0","1","2","3","4","5","6 or more"),11),
+       value = c(17,16.1,16.7,16.2,17.2,17.7,18.7,
+                 16.1,16.6,16.2,17,17.1,17.8,18.9,
+                 14,14.2,15.7,15.2,16.6,17.8,18.6,
+                 12.4,14.5,15.2,15.1,17.1,18.1,19,
+                 14.2,16.2,16.6,16.1,16.5,17.3,18.8,
+                 11.5,12.7,15.1,15.8,16.9,17.1,19,
+                 5.6,10.1,14.1,13.7,16.2,16.4,18.6,
+                 10,13.1,15.1,14.8,15.9,18.4,19.2,
+                 8.6,11.6,12.6,13.9,17,17.2,19.1,
+                 12.7,14.7,16.3,18.1,17.7,19.4,18.8,
+                 15.4,14.8,15.6,15.6,16.9,17.6,18.6)) 
 
-sub_1_plus %>%
-    group_by(pol, Gender) %>%
-      summarise(PGSI = mean(total),
-                GAMES = mean(num_games),
-                n = n())
+
+inv_tibble %>% ggplot(aes(num_games,value, group=game, color=game, label=game)) + geom_line(aes(linetype=game, color=game), size=1.5) +
+  #geom_point(aes(shape=game), size=4) +
+  scale_x_discrete(name = "Number of other games", limits = c("0","1","2","3","4","5","≥6"), labels = c("≥6" = "6 or more"), expand = c(0.3,0,0,0)) +
+  scale_y_continuous(name= "PGSI score", limits = c(5,20), breaks = c(5,7.5,10,12.5,15,17.5,20), position = "right") + 
+  scale_linetype_manual(values=c("twodash","dotted","solid","longdash","dotdash","dashed","twodash","dotted","solid","longdash","solid"))+
+  scale_color_manual(values=c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#666666','#a65628','#f781bf','#999999','#000000','#000000')) +
+  geom_text_repel(
+      data = subset(inv_tibble, num_games == "0"),
+      nudge_x      = -0.15,
+      direction    = "y",
+      hjust        = 1,
+      segment.size = 0.2,
+      size=5
+    ) +  
+  geom_point(aes(shape=game), size = 4) +
+  theme_minimal() + 
+  theme(legend.position = "none", text = element_text(size=14), axis.text.x = element_text(color="#000000", size=14),
+        axis.text.y = element_text(color="#000000", size=14))
+    
+ 
   
+  ggsave("../screeningdata/figs/involvement_600dpi.png", last_plot(), width = 12, height = 8,
+          dpi = 600)
 
-set.seed(1)
-y <- matrix(rbinom(100 * 20, 1, 0.5), 100, 10)
-z
-out <- cbird(Y, 2, 3)
+  
+  # Plot prob of participating in a certain type of gambling as a function of cluster  
 
-
-colSums(z_$V1:z_$V10)
-
-mydata_ <- select(mydata_, casino_online)
-
-
-#########INGVAR###########
-library(poLCA)
-d <- read.csv(file = "../User/Box Sync/data files/niu2.csv", sep=",", header = T)
-head(d)
-d <- dplyr::select(d, -respid)
-d_ <- dplyr::filter(d, d_q2 != ".c", d_q2 != ".b", d_q3 != ".c", d_q3 != ".b",d_q5 != ".c", d_q5 != ".b",d_q6 != ".c", d_q6 != ".b",d_q8a != ".c", d_q8a != ".b",
-              d_q8b != ".c", d_q8b != ".b",d_q9 != ".c", d_q9 != ".b",d_q10 != ".c", d_q10 != ".b",d_q11 != ".c", d_q11 != ".b",d_q12 != ".c", d_q12 != ".b",
-              d_q13 != ".c", d_q13 != ".b",d_q30 != ".c", d_q30 != ".b",d2_audc != ".c", d2_audc != ".b") 
-
-
-for(i in 1:13){
-  d_[,i] <- as.integer(as.character(d_[,i]))
-}
-
-f_ <- cbind(d_q2,d_q3,d_q5,d_q6,d_q8a,d_q8b,d_q9,d_q10,d_q11,d_q12,d_q13,d_q30,d2_audc)~1
+a <- aggregate(all_data,by=list(all_3_7_omitted$cluster),FUN=mean)
+a <- a %>% rename(group = Group.1)
+a <- a %>% gather(group, value) %>% mutate(cluster = rep(c("online casino","online sports/casino","casino/betting/poker","horse/lottery","online sports","casino/EGM","diverse"),10)) %>% rename(game_type = group)
+#a <- a %>% gather(group, value) %>% mutate(cluster = rep(c("1","2","3","4","5"),10)) %>% rename(game_type = group)
+a %>% ggplot(aes(game_type,value, group=cluster, color=cluster)) + geom_line(aes(linetype=cluster, color=cluster), size=1.5) +
+  scale_x_discrete(name = "", limits = c("bingo","horsebetting","lottery_type","poker_landbased","egm","casino_landbased","sportbetting_land","casino_online","sportbetting_online","poker_online"),
+                   labels = c("bingo" =  "bingo", "horsebetting" = "horse betting", "lottery_type" = "lotteries", "poker_landbased" ="land-based poker","egm"="EGM","casino_landbased" ="land-based casino",
+                              "sportbetting_land" = "land-based sports betting", "casino_online" = "online casino games", "sportbetting_online" = "online sports betting", "poker_online" = "online poker")) +
+  scale_y_continuous(name= "Probability of participation", limits = c(0,1), breaks = c(0,.25,.50,.75,1), position = "left", labels = scales::percent) + 
+  scale_color_manual(values=c('#e41a1c','#377eb8','#4daf4a','#984ea3','#ff7f00','#666666','#a65628')) +
+  geom_point(aes(shape=cluster), size = 4) +
+  theme_minimal() + 
+  theme(legend.position = "bottom", text = element_text(size=14), legend.text = element_text(size=14), axis.text.x = element_text(color="#000000", size=14,angle = 45, hjust = 1),
+        axis.text.y = element_text(color="#000000", size=14))
 
 
+ggsave("figs/custers.png", last_plot(), width = 12, height = 8,
+       dpi = 300)
 
-str(d_)
-
-tmp <- d_
-d_ <- as.matrix(mydata_) + 1
-
-
-for(i in 1:7){
-  c_ <- poLCA(f_,d_,i)
-  print(paste(i,c_$bic, sep=" "))
-} 
-
-
-#c_ <- cbird(as.matrix(d_),3,3)
-
-aggregate(tmp,by=list(c_5$cluster),FUN=mean)*100
-
-tmp <- mutate(tmp, cluster = c_5$cluster)
-
-tmp %>%
-  group_by(cluster) %>%
-    summarise(n=n())
-
-tmp$respid <- d_$respid
-
-
-sub_1_plus %>%
-  group_by(lotteries == 1, num_games ==1) %>%
-  summarise(PGSI = mean(total),
-            co = mean(casino_online),
-            ss_online= mean(sportbetting_online),
-            ss_o = mean(sportbetting_land),
-            Bingo = mean(bingo),
-            Vegas = mean(egm),
-            #CC = mean(casino_landbased),
-            #lot = mean(lotteries),
-            num = mean(Keno_type),
-            p_online = mean(poker_online),
-            p_cc = mean(poker_landbased),
-            ATG = mean(horsebetting),
-            Mean_N = mean(n),
-            n= n())
-##try clustering with kmodes
-library(klaR)
-cl <- kmodes(mydata_,6)
-
-
-
-
+ggsave("../screeningdata/figs/cluster_600dpi.png", last_plot(), width = 12, height = 8, dpi = 600)
 
 
 

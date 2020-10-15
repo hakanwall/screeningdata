@@ -14,6 +14,10 @@ library(cbird)
 library(poLCA)
 library(markdown)
 
+# Set locale
+
+Sys.setlocale("LC_ALL", locale = "sv_SE.UTF-8")
+
 #Get master csv file containing screening result
 
 path <- c("/../Users/User/Downloads/stats-7 2/pgsi.csv")
@@ -33,8 +37,10 @@ master$Age <- as.character(master$Age)
 
 master <- mutate(master, casino_online = if_else(game1 == "Online casino" | game2 == "Online casino" | game3 == "Online casino" | game4 == "Online casino" | game5 == "Online casino" | game6 == "Online casino" | game7 == "Online casino" | game8 == "Online casino" | game9 == "Online casino" | game10 == "Online casino" | game11 == "Online casino" | game12 == "Online casino",1,0))
 master <- mutate(master, sportbetting_land = if_else(game1 == "Sportspel ombud" | game2 == "Sportspel ombud" | game3 == "Sportspel ombud" | game4 == "Sportspel ombud" | game5 == "Sportspel ombud" | game6 == "Sportspel ombud" | game7 == "Sportspel ombud" | game8 == "Sportspel ombud" | game9 == "Sportspel ombud" | game10 == "Sportspel ombud" | game11 == "Sportspel ombud" | game12 == "Sportspel ombud",1,0))
+
 master <- mutate(master, keno_type = if_else(game1 == "Nummerspel" | game2 == "Nummerspel" | game3 == "Nummerspel" | game4 == "Nummerspel" | game5 == "Nummerspel" | game6 == "Nummerspel" | game7 == "Nummerspel" | game8 == "Nummerspel" | game9 == "Nummerspel" | game10 == "Nummerspel" | game11 == "Nummerspel" | game12 == "Nummerspel",1,0))
 master <- mutate(master, poker_online = if_else(game1 == "Poker online" | game2 == "Poker online" | game3 == "Poker online" | game4 == "Poker online" | game5 == "Poker online" | game6 == "Poker online" | game7 == "Poker online" | game8 == "Poker online" | game9 == "Poker online" | game10 == "Poker online" | game11 == "Poker online" | game12 == "Poker online",1,0))
+
 master <- mutate(master, sportbetting_online = if_else(game1 == "Sportspel online" | game2 == "Sportspel online" | game3 == "Sportspel online" | game4 == "Sportspel online" | game5 == "Sportspel online" | game6 == "Sportspel online" | game7 == "Sportspel online" | game8 == "Sportspel online" | game9 == "Sportspel online" | game10 == "Sportspel online" | game11 == "Sportspel online" | game12 == "Sportspel online",1,0))
 master <- mutate(master, lotteries = if_else(game1 == "Lotterier" | game2 == "Lotterier" | game3 == "Lotterier" | game4 == "Lotterier" | game5 == "Lotterier" | game6 == "Lotterier" | game7 == "Lotterier" | game8 == "Lotterier" | game9 == "Lotterier" | game10 == "Lotterier" | game11 == "Lotterier" | game12 == "Lotterier",1,0))
 master <- mutate(master, poker_landbased = if_else(game1 == "Poker live" | game2 == "Poker live" | game3 == "Poker live" | game4 == "Poker live" | game5 == "Poker live" | game6 == "Poker live" | game7 == "Poker live" | game8 == "Poker live" | game9 == "Poker live" | game10 == "Poker live" | game11 == "Poker live" | game12 == "Poker live",1,0))
@@ -59,13 +65,13 @@ master <- dplyr::select(master, -starts_with("game"))
 master$num_games <- rowSums(master[,17:28])
 
 # To have functional age levels, rearrange age groups 
-master$Age <- as.character(master$Age)
+#master$Age <- as.character(master$Age)
 
 
-master$Age[master$Age== "<15" | master$Age== "15-17"] <- c("<18")
-master$Age[master$Age== "25-34" | master$Age== "35-44"] <- c("25-44")
-master$Age[master$Age== "45-54" | master$Age== "55-64"] <- c("45-64")
-master$Age[master$Age== "65-74" | master$Age== ">74"] <- c(">65")
+#master$Age[master$Age== "<15" | master$Age== "15-17"] <- c("<18")
+#master$Age[master$Age== "25-34" | master$Age== "35-44"] <- c("25-44")
+#master$Age[master$Age== "45-54" | master$Age== "55-64"] <- c("45-64")
+#master$Age[master$Age== "65-74" | master$Age== ">74"] <- c(">65")
 
 #Set wrong entries as NA 
 master$Age[master$Age== "null" | master$Age== "Stockholms län" | master$Age== "Välj..." | master$Age =="Södermanlands län" | master$Age =="Jönköpings län" | master$Age =="Choose"] <- ""
@@ -76,7 +82,7 @@ master$Age[master$Age == ""] <- NA
 master$County[master$County == ""] <- NA
 master$Age <- as.factor(master$Age)
 #set 25-44 as ref level for analyses
-master$Age <- relevel(master$Age, "25-44")
+master$Age <- relevel(master$Age, "25-34")
 
 #Save master to csv if session crashes
 #write.csv(master, file = "Box Sync/data files/screeningdata/data files/master.csv", sep=",")
@@ -109,18 +115,18 @@ wilcox.test(sub_fun$num_games, sub_knowmore$num_games, paired = F)
 wilcox.test(sub_fun$total, sub_knowmore$total, paired = F)
 
 #Drop erroneous Age levels
-sub_1_plus <- sub_1_plus %>% 
-  filter(Age !="25-44" | Age != "18-24" | Age != "45-64" | Age != "<18" | Age != ">65") %>% 
-  droplevels()
+#sub_1_plus <- sub_1_plus %>% 
+#  filter(Age !="25-44" | Age != "18-24" | Age != "45-64" | Age != "<18" | Age != ">65") %>% 
+#  droplevels()
 #manually drop Gotlands län    
-droplevels(sub_1_plus$Age, exclude = "Gotlands l\303\244n")
+#droplevels(sub_1_plus$Age, exclude = "Gotlands l\303\244n")
 
 
 # Create a new variable called mydata for identifying clusters and collapse identical types of gambling: lotteries AND Keno_type
 
 # Try with all types of gambling
-
-all_data <- dplyr::select(sub_1_plus, casino_online:horsebetting)
+#
+all_data <- dplyr::select(data_omitted_dupl, casino_online:horsebetting)
 all_data <- all_data %>%
   mutate(lottery_type = if_else(lotteries | keno_type,1,0))
 all_data <- all_data %>%  
@@ -136,13 +142,15 @@ sub_1_plus$n <- all_data$n
 all_data <- dplyr::filter(all_data, n > 0)
 all_data <- dplyr::select(all_data, -n)
 
-# Create data set for analyses 
 
-sub_1_plus_analyses <- dplyr::filter(sub_1_plus, n > 0)
+#remove duplicates
+
+tmp_data_omitted <- sub_1_plus %>% distinct(Date,Gender,Age,County,casino_online,sportbetting_land,keno_type,poker_online,poker_online,poker_online,sportbetting_online,lotteries, poker_landbased, casino_landbased, bingo, egm, horsebetting, other, .keep_all = T)
+tmp_data_omitted <- tmp_data_omitted %>% filter(n > 0, !is.na(total))
+data_omitted_dupl <- tmp_data_omitted
 
 
+#data_omitted_dupl_old <- sub_1_plus_analyses
 
-
-
-
+#data_omitted_dupl_old <- data_omitted_dupl_old %>% filter(Age != "NA")
 
